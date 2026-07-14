@@ -1,0 +1,19 @@
+{
+  "name": "voxenbot-v2",
+  "version": "2.0.0",
+  "description": "Production-ready Discord.js v14 bot with JSON embed manager and verification API.",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "deploy": "node deploy-commands.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.17.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}
