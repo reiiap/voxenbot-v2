@@ -5,7 +5,12 @@ const logger = require('../utils/Logger');
 
 function createVerificationApi() {
   const app = express();
+  app.disable('x-powered-by');
   app.use(express.json({ limit: '1mb' }));
+
+  app.get('/health', async (req, res) => {
+    res.json({ ok: true, service: 'VoxenBot v2', timestamp: new Date().toISOString() });
+  });
 
   app.post('/verification/request', async (req, res) => {
     try {

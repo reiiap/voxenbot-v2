@@ -26,7 +26,7 @@ module.exports = {
     if (subcommand === 'list') { const names = EmbedService.listNames(); return interaction.reply({ content: names.length ? `Embed tersimpan:\n${names.map((name) => `• ${name}`).join('\n')}` : 'Belum ada embed yang tersimpan.', ephemeral: true }); }
     if (subcommand === 'clone') { const cloned = await EmbedService.clone(interaction.options.getString('source'), interaction.options.getString('name')); return interaction.reply({ content: `Embed berhasil digandakan menjadi ${cloned.name}.`, ephemeral: true }); }
     if (subcommand === 'export') { const embed = EmbedService.get(interaction.options.getString('name')); if (!embed) return interaction.reply({ content: 'Embed tidak ditemukan.', ephemeral: true }); return interaction.reply({ content: `File JSON untuk ${embed.name} berhasil dibuat.`, files: [EmbedService.attachment(embed)], ephemeral: true }); }
-    if (subcommand === 'import') { const file = interaction.options.getAttachment('file'); if (!file.name.endsWith('.json')) return interaction.reply({ content: 'File harus berformat .json.', ephemeral: true }); const response = await fetch(file.url); const json = await response.json(); const saved = await EmbedService.save(json); return interaction.reply({ content: `Embed ${saved.name} berhasil diimpor.`, ephemeral: true }); }
+    if (subcommand === 'import') { const saved = await EmbedService.importFromAttachment(interaction.options.getAttachment('file')); return interaction.reply({ content: `Embed ${saved.name} berhasil diimpor.`, ephemeral: true }); }
   },
   async handleComponent(interaction) {
     if (!(await PermissionService.guardEmbedManager(interaction))) return;

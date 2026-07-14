@@ -31,7 +31,8 @@ async function main() {
   await CommandHandler.load(client);
   await EventHandler.load(client);
 
-  createVerificationApi().listen(config.port, () => logger.success(`Verification API berjalan pada port ${config.port}.`));
+  const server = createVerificationApi().listen(config.port, () => logger.success(`Verification API berjalan pada port ${config.port}.`));
+  server.on('error', (error) => logger.error('Verification API gagal berjalan.', error));
   await client.login(config.token);
 }
 

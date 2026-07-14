@@ -1,23 +1,33 @@
-// Service penyimpanan JSON berbasis fs/promises dengan fallback aman.
+// Service penyimpanan JSON berbasis fs/promises dengan fallback aman dan penulisan atomic.
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const logger = require('../utils/Logger');
 
 class StorageService {
   constructor(basePath) { this.basePath = path.resolve(basePath); }
   async ensureDir(dir = this.basePath) { await fs.mkdir(dir, { recursive: true }); }
-  safeName(name) { return String(name || '').toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''); }
+  safeName(name) { return String(name || '').toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 64); }
   jsonPath(name) { return path.join(this.basePath, `${this.safeName(name)}.json`); }
+
   async readJson(filePath, fallback = null) {
     try { return JSON.parse(await fs.readFile(filePath, 'utf8')); }
     catch (error) { if (error.code !== 'ENOENT') logger.error(`Gagal membaca JSON: ${filePath}`, error); return fallback; }
   }
-  async writeJson(filePath, data) { await this.ensureDir(path.dirname(filePath)); await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8'); }
+
+  async writeJson(filePath, data) {
+    await this.ensureDir(path.dirname(filePath));
+    const tempPath = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
+    await fs.writeFile(tempPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+    await fs.rename(tempPath, filePath);
+  }
+
   async read(name, fallback = null) { await this.ensureDir(); return this.readJson(this.jsonPath(name), fallback); }
   async write(name, data) { await this.writeJson(this.jsonPath(name), data); }
   async delete(name) { try { await fs.unlink(this.jsonPath(name)); return true; } catch (error) { if (error.code !== 'ENOENT') logger.error('Gagal menghapus file JSON.', error); return false; } }
   async exists(name) { try { await fs.access(this.jsonPath(name)); return true; } catch { return false; } }
   async listJsonFiles() { await this.ensureDir(); const files = await fs.readdir(this.basePath).catch(() => []); return files.filter((file) => file.endsWith('.json')); }
+
   async backupJson(name, backupRoot) {
     const source = this.jsonPath(name);
     try {
