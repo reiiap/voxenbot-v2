@@ -1,15 +1,33 @@
-// Express verification compatibility API backed by verification-store.json.
+// Route Express untuk kompatibilitas verification API lama.
 const express = require('express');
-const JsonStorage = require('../utils/JsonStorage');
-const config = require('../config');
-const storage = new JsonStorage('./verification');
+const VerificationService = require('../services/VerificationService');
+const logger = require('../utils/Logger');
 
-async function readStore() { return storage.readFile(config.paths.verificationStore, { requests: {}, statuses: {} }); }
-async function writeStore(data) { await storage.writeFile(config.paths.verificationStore, data); }
 function createVerificationApi() {
-  const app = express(); app.use(express.json({ limit: '1mb' }));
-  app.post('/verification/request', async (req, res) => { try { const { player, discordId } = req.body || {}; if (!player) return res.status(400).json({ ok:false, error:'player is required' }); const store = await readStore(); store.requests[player] = { player, discordId: discordId || null, requestedAt: new Date().toISOString(), status:'pending' }; store.statuses[player] = store.statuses[player] || 'pending'; await writeStore(store); res.json({ ok:true, status:store.statuses[player] }); } catch (e) { console.error(e); res.status(500).json({ ok:false, error:'internal error' }); } });
-  app.get('/verification/status/:player', async (req, res) => { try { const store = await readStore(); res.json({ ok:true, player:req.params.player, status:store.statuses[req.params.player] || 'unknown' }); } catch (e) { console.error(e); res.status(500).json({ ok:false, error:'internal error' }); } });
+  const app = express();
+  app.use(express.json({ limit: '1mb' }));
+
+  app.post('/verification/request', async (req, res) => {
+    try {
+      const result = await VerificationService.request(req.body?.player, req.body?.discordId || null);
+      res.json({ ok: true, status: result.status });
+    } catch (error) {
+      logger.error('Request verification gagal.', error);
+      res.status(400).json({ ok: false, error: error.message || 'Terjadi kesalahan internal.' });
+    }
+  });
+
+  app.get('/verification/status/:player', async (req, res) => {
+    try {
+      const result = await VerificationService.status(req.params.player);
+      res.json({ ok: true, player: result.player, status: result.status });
+    } catch (error) {
+      logger.error('Status verification gagal.', error);
+      res.status(500).json({ ok: false, error: 'Terjadi kesalahan internal.' });
+    }
+  });
+
   return app;
 }
+
 module.exports = createVerificationApi;

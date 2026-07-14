@@ -1,23 +1,41 @@
-// VoxenBot v2 entrypoint. Loads commands/events, starts Discord client and Express verification API.
+// Entrypoint VoxenBot v2: inisialisasi service, handler, Discord client, dan API Express.
 require('dotenv').config();
 const fs = require('node:fs/promises');
-const path = require('node:path');
-const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const config = require('./config');
+const logger = require('./utils/Logger');
+const EmbedService = require('./services/EmbedService');
+const CommandHandler = require('./handlers/CommandHandler');
+const EventHandler = require('./handlers/EventHandler');
 const createVerificationApi = require('./verification/api');
 
-process.on('unhandledRejection', (e) => console.error('Unhandled rejection:', e));
-process.on('uncaughtException', (e) => console.error('Uncaught exception:', e));
+process.on('unhandledRejection', (error) => logger.error('Unhandled Promise Rejection dicegah.', error));
+process.on('uncaughtException', (error) => logger.error('Uncaught Exception dicegah.', error));
+process.on('warning', (warning) => logger.warn('Node warning:', warning.message));
 
-async function loadDirectory(client, dir, attach) { const files = (await fs.readdir(path.join(__dirname, dir)).catch(() => [])).filter((f) => f.endsWith('.js')); for (const file of files) attach(require(path.join(__dirname, dir, file))); }
+async function ensureFolders() {
+  await Promise.all([
+    fs.mkdir(config.paths.embeds, { recursive: true }),
+    fs.mkdir(config.paths.data, { recursive: true }),
+    fs.mkdir(config.paths.backups, { recursive: true }),
+    fs.mkdir('./verification', { recursive: true })
+  ]);
+}
+
 async function main() {
-  if (!config.token) throw new Error('DISCORD_TOKEN is required.');
-  await Promise.all([fs.mkdir(config.paths.embeds, { recursive:true }), fs.mkdir(config.paths.data, { recursive:true }), fs.mkdir('./verification', { recursive:true })]);
-  const client = new Client({ intents:[GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent], partials:[Partials.Channel] });
-  client.commands = new Collection();
-  await loadDirectory(client, 'commands', (cmd) => client.commands.set(cmd.data.name, cmd));
-  await loadDirectory(client, 'events', (event) => client[event.once ? 'once' : 'on'](event.name, (...args) => event.execute(...args)));
-  createVerificationApi().listen(config.port, () => console.log(`Verification API listening on port ${config.port}`));
+  if (!config.token) throw new Error('DISCORD_TOKEN wajib diisi.');
+  await ensureFolders();
+  await EmbedService.loadCache();
+
+  const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent], partials: [Partials.Channel] });
+  await CommandHandler.load(client);
+  await EventHandler.load(client);
+
+  createVerificationApi().listen(config.port, () => logger.success(`Verification API berjalan pada port ${config.port}.`));
   await client.login(config.token);
 }
-main().catch((e) => { console.error('Startup failed:', e); process.exitCode = 1; });
+
+main().catch((error) => {
+  logger.error('Startup bot gagal.', error);
+  process.exitCode = 1;
+});

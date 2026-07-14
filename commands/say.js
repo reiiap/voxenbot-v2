@@ -1,3 +1,11 @@
-// /say plain message command.
+// Command /say agar bot mengirim pesan teks biasa.
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-module.exports = { data: new SlashCommandBuilder().setName('say').setDescription('Send a plain bot message.').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addStringOption((o) => o.setName('message').setDescription('Message text.').setRequired(true)), async execute(interaction) { await interaction.reply({ content: 'Message sent.', ephemeral: true }); await interaction.channel.send(interaction.options.getString('message')); } };
+
+module.exports = {
+  adminCooldown: true,
+  data: new SlashCommandBuilder().setName('say').setDescription('Mengirim pesan teks biasa melalui bot.').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addStringOption((option) => option.setName('message').setDescription('Isi pesan.').setRequired(true).setMaxLength(2000)),
+  async execute(interaction) {
+    await interaction.reply({ content: 'Pesan berhasil dikirim.', ephemeral: true });
+    await interaction.channel.send(interaction.options.getString('message'));
+  }
+};

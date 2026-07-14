@@ -1,9 +1,8 @@
-// Central runtime configuration. Values come from environment variables so Railway can inject secrets safely.
+// Konfigurasi pusat bot. Semua nilai sensitif diambil dari environment variable.
 require('dotenv').config();
 
-/** Convert a comma-separated env var into a clean array of Discord snowflakes. */
 function list(name) {
-  return (process.env[name] || '').split(',').map((v) => v.trim()).filter(Boolean);
+  return (process.env[name] || '').split(',').map((value) => value.trim()).filter(Boolean);
 }
 
 module.exports = {
@@ -12,6 +11,9 @@ module.exports = {
   guildId: process.env.GUILD_ID || '',
   ownerId: process.env.OWNER_ID || '',
   port: Number(process.env.PORT || 3000),
+  cooldowns: {
+    adminCommandSeconds: Number(process.env.ADMIN_COMMAND_COOLDOWN_SECONDS || 5)
+  },
   permissions: {
     allowedRoleIds: list('ALLOWED_ROLE_IDS'),
     adminRoleIds: list('ADMIN_ROLE_IDS'),
@@ -21,6 +23,7 @@ module.exports = {
   paths: {
     embeds: './embeds',
     data: './data',
+    backups: './data/backups',
     verificationStore: './verification/verification-store.json'
   }
 };

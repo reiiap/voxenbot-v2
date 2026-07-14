@@ -1,3 +1,7 @@
-// /ping utility command.
+// Command /ping untuk menampilkan latency API Discord.
 const { SlashCommandBuilder } = require('discord.js');
-module.exports = { data: new SlashCommandBuilder().setName('ping').setDescription('Shows bot and API latency.'), async execute(interaction) { await interaction.reply(`Pong! API latency: ${interaction.client.ws.ping}ms`); } };
+
+module.exports = {
+  data: new SlashCommandBuilder().setName('ping').setDescription('Menampilkan latency bot.'),
+  async execute(interaction) { await interaction.reply(`Bot aktif! Latency API: ${interaction.client.ws.ping}ms`); }
+};
